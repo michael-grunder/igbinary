@@ -231,6 +231,7 @@ memcached or similar memory based storages for serialized data.</description>
     <file name="igbinary_enums_3.phpt" role="test" />
     <file name="igbinary_enums_3_php83.phpt" role="test" />
     <file name="igbinary_serialize_deep_nesting.phpt" role="test" />
+    <file name="igbinary_unserialize_duplicate_key.phpt" role="test" />
     <file name="igbinary_unserialize_max_depth.phpt" role="test" />
     <file name="igbinary_unserialize_max_depth_boundary.phpt" role="test" />
     <file name="igbinary_unserialize_options.phpt" role="test" />
