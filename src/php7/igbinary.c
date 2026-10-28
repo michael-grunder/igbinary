@@ -692,6 +692,17 @@ static inline int igsd_defer_dtor(struct deferred_dtor_tracker *tracker, zval *z
 	return 0;
 }
 /* }}} */
+/* {{{ igsd_defer_dtor_and_clear(struct deferred_dtor_tracker *tracker, zval *z) */
+/* Moves a refcounted value out of z into the deferred dtor list and leaves IS_NULL behind,
+ * so it's safe whether the next writer of z overwrites it or destroys it first. */
+static inline int igsd_defer_dtor_and_clear(struct deferred_dtor_tracker *tracker, zval *z) {
+	RETURN_1_IF_NON_ZERO(igsd_defer_dtor(tracker, z));
+	if (Z_REFCOUNTED_P(z)) {
+		ZVAL_NULL(z);
+	}
+	return 0;
+}
+/* }}} */
 /* {{{ int igbinary_serialize(uint8_t**, size_t*, zval*) */
 IGBINARY_API int igbinary_serialize(uint8_t **ret, size_t *ret_len, zval *z) {
 	return igbinary_serialize_ex(ret, ret_len, z, NULL);
@@ -2702,16 +2713,16 @@ cleanup:
 		/* Use NULL because inserting UNDEF into array does not add a new element */
 		if (key_str != NULL) {
 			vp = igbinary_zend_hash_add_or_find(h, key_str);
-			/* If there was an old value instead of an inserted IS_NULL zval (unlikely) and that old value was refcounted, then add a reference and defer freeing that reference */
-			if (UNEXPECTED(igsd_addref_and_defer_dtor(&igsd->deferred_dtor_tracker, vp))) {
+			/* If there was an old value instead of an inserted IS_NULL zval (unlikely) and that old value was refcounted, then move it to the deferred dtor list (like php-src var_push_dtor_value) */
+			if (UNEXPECTED(igsd_defer_dtor_and_clear(&igsd->deferred_dtor_tracker, vp))) {
 				return 1;
 			}
 
 			zend_string_release(key_str);
 		} else {
-			/* If there was an old value instead of an inserted IS_NULL zval (unlikely) and that old value was refcounted, then add a reference and defer freeing that reference */
+			/* If there was an old value instead of an inserted IS_NULL zval (unlikely) and that old value was refcounted, then move it to the deferred dtor list (like php-src var_push_dtor_value) */
 			vp = igbinary_zend_hash_index_add_or_find(h, key_index);
-			if (UNEXPECTED(igsd_addref_and_defer_dtor(&igsd->deferred_dtor_tracker, vp))) {
+			if (UNEXPECTED(igsd_defer_dtor_and_clear(&igsd->deferred_dtor_tracker, vp))) {
 				return 1;
 			}
 		}
